@@ -76,6 +76,29 @@ test('If there are not likes the defaul value will be 0', async () => {
   expect(lastBlog.likes).toBe(0)
 })
 
+test('Verify is includes title', async () => {
+  const newBlog = {
+    author: 'juna cat',
+    url: 'url',
+  }
+
+  await api
+    .post('/api/v1/blogs')
+    .send(newBlog)
+    .expect(404)
+})
+
+test('Verify is includes author', async () => {
+  const newBlog = {
+    title: 'Blog 4',
+    url: 'url',
+  }
+
+  await api
+    .post('/api/v1/blogs')
+    .send(newBlog)
+    .expect(404)
+})
 
 afterAll(() => {
   mongoose.connection.close()
