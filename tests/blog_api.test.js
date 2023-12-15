@@ -52,7 +52,6 @@ test('a valid blog can be added', async () => {
     .send(newBlog)
 
   const blogsInDb = await Blog.find({})
-  console.log(blogsInDb)
   expect(blogsInDb).toHaveLength(initialBlogs.length + 1)
 
   const contents = blogsInDb.map(n => n.title)
@@ -61,6 +60,22 @@ test('a valid blog can be added', async () => {
     'Blog 3'
   )
 })
+
+test('If there are not likes the defaul value will be 0', async () => {
+  const newBlog = {
+    title: 'Blog 4',
+    author: 'juna cat',
+    url: 'url',
+  }
+
+  await api
+    .post('/api/v1/blogs')
+    .send(newBlog)
+  const blogsInDb = await Blog.find({})
+  const lastBlog = blogsInDb.pop()
+  expect(lastBlog.likes).toBe(0)
+})
+
 
 afterAll(() => {
   mongoose.connection.close()
