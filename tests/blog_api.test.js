@@ -85,20 +85,20 @@ test('Verify is includes title', async () => {
   await api
     .post('/api/v1/blogs')
     .send(newBlog)
-    .expect(404)
-})
+    .expect(400)
+}, 10000)
 
-test('Verify is includes author', async () => {
+test('Verify is includes uri', async () => {
   const newBlog = {
     title: 'Blog 4',
-    url: 'url',
+    author: 'juna cat',
   }
 
   await api
     .post('/api/v1/blogs')
     .send(newBlog)
-    .expect(404)
-})
+    .expect(400)
+}, 10000)
 
 afterAll(() => {
   mongoose.connection.close()
