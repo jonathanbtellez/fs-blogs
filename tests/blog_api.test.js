@@ -1,105 +1,118 @@
 const mongoose = require('mongoose')
 const supertest = require('supertest')
+const helper = require('./test_helper')
 const app = require('../app')
 
 const api = supertest(app)
 
 const Blog = require('../models/blog')
-const initialBlogs = [
-  {
-    title: 'Blog',
-    author: 'juna cat',
-    url: 'url',
-    likes: 58
-  },
-  {
-    title: 'Blog 2',
-    author: 'juna cat',
-    url: 'url',
-    likes: 58
-  },
-]
+const { notesInDb } = require('../../notas/tests/test_helper')
+
 beforeEach(async () => {
   await Blog.deleteMany({})
-  let blogObject = new Blog(initialBlogs[0])
-  await blogObject.save()
-  blogObject = new Blog(initialBlogs[1])
-  await blogObject.save()
+
+  const blogObjects = helper.initialBlogs
+    .map(note => new Blog(note))
+  const promiseArray = blogObjects.map(note => note.save())
+  await Promise.all(promiseArray)
 })
 
-test('blogs are returned as json', async () => {
-  await api
-    .get('/api/v1/blogs')
-    .expect(200)
-    .expect('Content-Type', /application\/json/)
+describe('validate properties of response', () => {
+  test('blogs are returned as json', async () => {
+    await api
+      .get('/api/v1/blogs')
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+  })
+
+  test('identifier id is defined', async () => {
+    const blogs = await helper.blogsInDb()
+    blogs.map(blog => expect(blog.id).toBeDefined())
+  })
 })
 
-test('identifier  id is difined', async () => {
-  const blogs = await Blog.find({})
-  expect(blogs[0].id).toBeDefined()
+describe('validate the body of the blog', () => {
+  test('a valid blog can be added', async () => {
+    const newBlog = {
+      title: 'Blog 3',
+      author: 'juna cat',
+      url: 'url',
+      likes: 58
+    }
+
+    await api
+      .post('/api/v1/blogs')
+      .send(newBlog)
+
+    const blogsInDb = await helper.blogsInDb()
+    expect(blogsInDb).toHaveLength(helper.initialBlogs.length + 1)
+
+    const contents = blogsInDb.map(n => n.title)
+
+    expect(contents).toContain(
+      'Blog 3'
+    )
+  })
+
+  test('If there are not likes the defaul value will be 0', async () => {
+    const newBlog = {
+      title: 'Blog 4',
+      author: 'juna cat',
+      url: 'url',
+    }
+
+    await api
+      .post('/api/v1/blogs')
+      .send(newBlog)
+    const blogsInDb = await helper.blogsInDb()
+    const lastBlog = blogsInDb.pop()
+    expect(lastBlog.likes).toBe(0)
+  })
+
+  test('fail with status code 404 if title invalid', async () => {
+    const newBlog = {
+      author: 'juna cat',
+      url: 'url',
+    }
+    await api
+      .post('/api/v1/blogs')
+      .send(newBlog)
+      .expect(400)
+  })
+
+  test('fail with status code 404 if url invalid', async () => {
+    const newBlog = {
+      title: 'Blog 4',
+      author: 'juna cat',
+    }
+
+    await api
+      .post('/api/v1/blogs')
+      .send(newBlog)
+      .expect(400)
+  })
 })
 
-test('a valid blog can be added', async () => {
-  const newBlog = {
-    title: 'Blog 3',
-    author: 'juna cat',
-    url: 'url',
-    likes: 58
-  }
+describe('delrtion of a blog', () => {
+  test('succeeds with status code 204 if id is valid', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+    const blogToDelete = blogsAtStart[0]
 
-  await api
-    .post('/api/v1/blogs')
-    .send(newBlog)
+    await api
+      .delete(`/api/v1/blogs/${blogToDelete.id}`)
+      .expect(204)
 
-  const blogsInDb = await Blog.find({})
-  expect(blogsInDb).toHaveLength(initialBlogs.length + 1)
+    const blogsAtEnd = await helper.blogsInDb()
 
-  const contents = blogsInDb.map(n => n.title)
+    expect(blogsAtEnd).toHaveLength(
+      helper.initialBlogs.length - 1
+    )
 
-  expect(contents).toContain(
-    'Blog 3'
-  )
+    const contents = blogsAtEnd.map(r => r.title)
+
+    expect(contents).not.toContain(blogToDelete.title)
+  })
 })
-
-test('If there are not likes the defaul value will be 0', async () => {
-  const newBlog = {
-    title: 'Blog 4',
-    author: 'juna cat',
-    url: 'url',
-  }
-
-  await api
-    .post('/api/v1/blogs')
-    .send(newBlog)
-  const blogsInDb = await Blog.find({})
-  const lastBlog = blogsInDb.pop()
-  expect(lastBlog.likes).toBe(0)
-})
-
-test('Verify is includes title', async () => {
-  const newBlog = {
-    author: 'juna cat',
-    url: 'url',
-  }
-
-  await api
-    .post('/api/v1/blogs')
-    .send(newBlog)
-    .expect(400)
-})
-
-test('Verify is includes uri and title', async () => {
-  const newBlog = {
-    // title: 'Blog 4',
-    author: 'juna cat',
-  }
-
-  await api
-    .post('/api/v1/blogs')
-    .send(newBlog)
-    .expect(400)
-})
-
 afterAll(() => {
   mongoose.connection.close()
 })
