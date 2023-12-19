@@ -93,7 +93,7 @@ describe('validate the body of the blog', () => {
   })
 })
 
-describe('delrtion of a blog', () => {
+describe('deletion of a blog', () => {
   test('succeeds with status code 204 if id is valid', async () => {
     const blogsAtStart = await helper.blogsInDb()
     const blogToDelete = blogsAtStart[0]
@@ -111,6 +111,24 @@ describe('delrtion of a blog', () => {
     const contents = blogsAtEnd.map(r => r.title)
 
     expect(contents).not.toContain(blogToDelete.title)
+  })
+})
+
+describe('update a blog', () => {
+  test('succeeds with status code 200 if id is valid', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+    const blogIdToUpdate = blogsAtStart[0]
+    const blogToUpdate = {
+      title: 'Blog three',
+      author: 'juna cat',
+      url: 'url',
+      likes: blogIdToUpdate.likes +1
+    }
+    const updatedBlog = await api
+      .put(`/api/v1/blogs/${blogIdToUpdate.id}`).send(blogToUpdate)
+
+    expect(updatedBlog._body.title).toBe(blogToUpdate.title)
+    expect(updatedBlog._body.likes).toBe(blogToUpdate.likes)
   })
 })
 afterAll(() => {
