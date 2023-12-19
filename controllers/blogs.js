@@ -7,8 +7,8 @@ blogsRouter.get('/', async (request, response) => {
 })
 
 blogsRouter.post('/', async (request, response) => {
-    if (!request.body.title) return response.status(400)
-    if (!request.body.url) return response.status(400)
+    if (!request.body.title) return response.status(400).end()
+    if (!request.body.url) return response.status(400).end()
 
     request.body.likes = request.body.likes ? request.body.likes : 0
 

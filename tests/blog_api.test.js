@@ -86,11 +86,11 @@ test('Verify is includes title', async () => {
     .post('/api/v1/blogs')
     .send(newBlog)
     .expect(400)
-}, 10000)
+})
 
-test('Verify is includes uri', async () => {
+test('Verify is includes uri and title', async () => {
   const newBlog = {
-    title: 'Blog 4',
+    // title: 'Blog 4',
     author: 'juna cat',
   }
 
@@ -98,7 +98,7 @@ test('Verify is includes uri', async () => {
     .post('/api/v1/blogs')
     .send(newBlog)
     .expect(400)
-}, 10000)
+})
 
 afterAll(() => {
   mongoose.connection.close()
