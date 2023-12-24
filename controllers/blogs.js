@@ -13,7 +13,7 @@ blogsRouter.get('/', async (request, response) => {
 blogsRouter.post('/', async (request, response) => {
     if (!request.body.title) return response.status(400).end()
     if (!request.body.url) return response.status(400).end()
-    
+
     const decodedToken = jwt.verify(request.token, process.env.SECRET)
     if (!request.token || !decodedToken.id) {
         return response.status(401).json({ error: 'token missing or invalid' })
@@ -35,8 +35,28 @@ blogsRouter.post('/', async (request, response) => {
 })
 
 blogsRouter.delete('/:id', async (request, response) => {
-    await Blog.findByIdAndDelete(request.params.id)
-    response.status(204).end()
+    const decodedToken = jwt.verify(request.token, process.env.SECRET)
+
+    if (!request.token || !decodedToken.id) {
+        return response.status(401).json({ error: 'token missing or invalid' })
+    }
+
+    
+    const user = await User.findById(decodedToken.id)
+    const blog = await Blog.findById(request.params.id)
+    console.log(blog)
+
+    if(!blog){
+        return response.status(404).end()
+    }
+    
+    if ( blog.user.toString() === user._id.toString() ){
+        await Blog.deleteOne({_id: blog._id})
+        return response.status(204).end()
+    }
+
+    return response.status(403).json({ error: 'User do not have permision to delete this note' })
+
 })
 
 blogsRouter.put('/:id', async (request, response) => {
