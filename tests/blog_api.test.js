@@ -10,6 +10,8 @@ const api = supertest(app)
 
 const Blog = require('../models/blog')
 
+let loggedInToken
+
 beforeEach(async () => {
   await Blog.deleteMany({})
 
@@ -17,6 +19,24 @@ beforeEach(async () => {
     .map(note => new Blog(note))
   const promiseArray = blogObjects.map(note => note.save())
   await Promise.all(promiseArray)
+
+  await User.deleteMany({})
+
+  const passwordHash = await bcrypt.hash('jannata', 10)
+  const user = new User({
+    username: 'camariana',
+    passwordHash
+  })
+  await user.save()
+
+  const response = await api
+    .post('/api/v1/login')
+    .send({
+      username: 'camariana',
+      password: 'jannata'
+    })
+
+  loggedInToken = response.body.token
 })
 
 describe('validate properties of response', () => {
@@ -44,7 +64,11 @@ describe('validate the body of the blog', () => {
 
     await api
       .post('/api/v1/blogs')
+      .set({ Authorization: `bearer ${loggedInToken}` })
       .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
 
     const blogsInDb = await helper.blogsInDb()
     expect(blogsInDb).toHaveLength(helper.initialBlogs.length + 1)
@@ -65,7 +89,9 @@ describe('validate the body of the blog', () => {
 
     await api
       .post('/api/v1/blogs')
+      .set({ Authorization: `bearer ${loggedInToken}` })
       .send(newBlog)
+
     const blogsInDb = await helper.blogsInDb()
     const lastBlog = blogsInDb.pop()
     expect(lastBlog.likes).toBe(0)
@@ -78,6 +104,7 @@ describe('validate the body of the blog', () => {
     }
     await api
       .post('/api/v1/blogs')
+      .set({ Authorization: `bearer ${loggedInToken}` })
       .send(newBlog)
       .expect(400)
   })
@@ -90,6 +117,7 @@ describe('validate the body of the blog', () => {
 
     await api
       .post('/api/v1/blogs')
+      .set({ Authorization: `bearer ${loggedInToken}` })
       .send(newBlog)
       .expect(400)
   })
@@ -102,6 +130,7 @@ describe('deletion of a blog', () => {
 
     await api
       .delete(`/api/v1/blogs/${blogToDelete.id}`)
+      .set({ Authorization: `bearer ${loggedInToken}` })
       .expect(204)
 
     const blogsAtEnd = await helper.blogsInDb()
@@ -124,7 +153,7 @@ describe('update a blog', () => {
       title: 'Blog three',
       author: 'juna cat',
       url: 'url',
-      likes: blogIdToUpdate.likes +1
+      likes: blogIdToUpdate.likes + 1
     }
     const updatedBlog = await api
       .put(`/api/v1/blogs/${blogIdToUpdate.id}`).send(blogToUpdate)
