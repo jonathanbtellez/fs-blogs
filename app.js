@@ -28,6 +28,12 @@ app.use(middleware.tokenExtrator)
 app.use('/api/v1/blogs', blogsRouter)
 app.use('/api/v1/users', usersRouter)
 app.use('/api/v1/login', loginRouter)
+
+if (process.env.NODE_ENV === 'test') {
+  const testingRouter = require('./controllers/testing')
+  app.use('/api/v1/testing', testingRouter)
+}
+
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)
 
