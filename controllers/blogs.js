@@ -1,9 +1,10 @@
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
+const Comment = require('../models/comment')
 const { userExtrator } = require('../utils/middleware')
 
 blogsRouter.get('/', async (request, response) => {
-    const blogs = await Blog.find({}).populate('user', { username: 1, name: 1 })
+    const blogs = await Blog.find({}).populate('user', { username: 1, name: 1 }).populate('comments', { content: 1 })
     response.json(blogs)
 })
 
@@ -27,6 +28,26 @@ blogsRouter.post('/', userExtrator, async (request, response) => {
     response.status(201).json(result)
 })
 
+blogsRouter.post('/:id/comment', userExtrator, async (request, response) => {
+    const { content } = request.body
+
+    const comment = new Comment({
+        content,
+        blog: request.params.id
+    })
+
+    const result = await comment.save()
+
+    const blogToUpdate = await Blog.findById(request.params.id)
+
+    console.log(result, blogToUpdate)
+
+    blogToUpdate.comments = blogToUpdate.comments.concat(result._id)
+
+    const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, blogToUpdate, { new: true }).populate('user', { username: 1, name: 1 }).populate('comments', { content: 1 })
+    response.json(updatedBlog)
+})
+
 blogsRouter.delete('/:id', userExtrator, async (request, response) => {
     const user = request.user
 
@@ -47,6 +68,11 @@ blogsRouter.delete('/:id', userExtrator, async (request, response) => {
 
     return response.status(403).json({ error: 'User do not have permision to delete this note' })
 
+})
+
+blogsRouter.get('/:id', userExtrator, async (request, response) => {
+    const blog = await Blog.findById(request.params.id).populate('user', { username: 1, name: 1 }).populate('comments', { content: 1 })
+    response.json(blog)
 })
 
 blogsRouter.put('/:id', userExtrator, async (request, response) => {
